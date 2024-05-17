@@ -105,3 +105,4 @@ fabric.properties
 *.sqlite3
 
 app/node_modules/
+public/

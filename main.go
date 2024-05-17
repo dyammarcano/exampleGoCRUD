@@ -27,7 +27,7 @@ const (
 	SqlUpdateUser  = `UPDATE users SET username = ?, age = ?, email = ?, phone = ? WHERE id = ?;`
 )
 
-//go:embed app/dist/*
+//go:embed public/*
 var content embed.FS
 
 type DataProvider struct {
@@ -295,7 +295,7 @@ func deleteUser(db *sqlx.DB, uid string) error {
 
 func assetsHandler(content embed.FS) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sub, err := fs.Sub(content, "app/dist")
+		sub, err := fs.Sub(content, "public")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
