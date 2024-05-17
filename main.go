@@ -10,12 +10,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
+	"time"
 )
 
 const (
-	SqlCreateTable = `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, age INTEGER, email TEXT, phone TEXT, createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
+	SqlCreateTable = `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, age INTEGER, email TEXT, phone TEXT, createAt TIMESTAMP);`
 	SqlCreateId    = `CREATE TABLE IF NOT EXISTS uuid_map (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, user_id TEXT, createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
-	SqlInsertUser  = `INSERT INTO users (username, age, email, phone) VALUES (?, ?, ?, ?);`
+	SqlInsertUser  = `INSERT INTO users (username, age, email, phone, createAt) VALUES (?, ?, ?, ?, ?);`
 	SqlInsertId    = `INSERT INTO uuid_map (user_id, uuid) VALUES (?, ?);`
 	SqlSelectUsers = `SELECT * FROM users;`
 	SqlSeletUer    = `SELECT u.id, u.username, u.age, u.email, u.phone, u.createAt FROM users u JOIN uuid_map m ON u.id = m.user_id WHERE m.uuid = ?;`
@@ -29,8 +30,8 @@ type DataProvider struct {
 }
 
 // NewDataProvider creates a new data provider with the given driver name and data source name.
-func NewDataProvider(ddriverName, dataSourceName string) (*DataProvider, error) {
-	db, err := sqlx.Open(ddriverName, dataSourceName)
+func NewDataProvider(driverName, dataSourceName string) (*DataProvider, error) {
+	db, err := sqlx.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -226,9 +227,10 @@ func response(w http.ResponseWriter, v any) {
 func createUser(db *sqlx.DB, user *User) error {
 	// Generate a new UUID and assign it to the user
 	user.UUID = uuid.New().String()
+	user.CreateAt = time.Now().Format(time.RFC3339)
 
 	// Get the last inserted ID (user_id)
-	result, err := db.Exec(SqlInsertUser, user.Username, user.Age, user.Email, user.Phone)
+	result, err := db.Exec(SqlInsertUser, user.Username, user.Age, user.Email, user.Phone, user.CreateAt)
 	if err != nil {
 		return err
 	}
