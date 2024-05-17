@@ -103,3 +103,5 @@ fabric.properties
 *.db
 *.sqlite
 *.sqlite3
+
+app/node_modules/

@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -24,6 +26,9 @@ const (
 	SqlDeleteId    = `DELETE FROM uuid_map WHERE uuid = ?;`
 	SqlUpdateUser  = `UPDATE users SET username = ?, age = ?, email = ?, phone = ? WHERE id = ?;`
 )
+
+//go:embed app/dist/*
+var content embed.FS
 
 type DataProvider struct {
 	*sqlx.DB
@@ -207,6 +212,9 @@ func main() {
 	mux.HandleFunc("/user/list", provider.GetUsersHandler)
 	mux.HandleFunc("/user/update", provider.UpdateUserHandler)
 
+	// frontend layer
+	mux.HandleFunc("/", embedContentHandler(content))
+
 	log.Println("Server is running on port 8080")
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
@@ -283,4 +291,30 @@ func deleteUser(db *sqlx.DB, uid string) error {
 		return err
 	}
 	return nil
+}
+
+func embedContentHandler(content embed.FS) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		strippedPath := r.URL.Path
+		fs := http.FileServer(http.FS(content))
+
+		// Prepend "app/dist" for root and /assets requests
+		if r.URL.Path == "/" || strings.HasPrefix(r.URL.Path, "/assets/") {
+			strippedPath = strings.TrimPrefix(strippedPath, "/")
+			strippedPath = "app/dist/" + strippedPath
+		}
+
+		// Serve the file
+		fs.ServeHTTP(w, r)
+
+		//fs := http.FS(content)
+		//f, err := fs.Open(strippedPath)
+		//if err != nil {
+		//	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		//	return
+		//}
+		//defer f.Close()
+		//
+		//htt.
+	}
 }

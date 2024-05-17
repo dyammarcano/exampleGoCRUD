@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple User Management</title>
+    <script src="https://unpkg.com/htmx.org"></script>
+</head>
+<body>
+<h1>User Management</h1>
+
+<h2>Add User</h2>
+<form hx-post="/user/add" hx-trigger="submit">
+    <label for="username">Username:</label><br>
+    <input type="text" id="username" name="username"><br>
+    <label for="age">Age:</label><br>
+    <input type="number" id="age" name="age"><br>
+    <label for="email">Email:</label><br>
+    <input type="email" id="email" name="email"><br>
+    <label for="phone">Phone:</label><br>
+    <input type="text" id="phone" name="phone"><br>
+    <input type="submit" value="Submit">
+</form>
+
+<h2>Update User</h2>
+<form hx-put="/user/update" hx-trigger="submit">
+    <label for="uuid">UUID:</label><br>
+    <input type="text" id="uuid" name="uuid"><br>
+    <label for="username">Username:</label><br>
+    <input type="text" id="username" name="username"><br>
+    <label for="age">Age:</label><br>
+    <input type="number" id="age" name="age"><br>
+    <label for="email">Email:</label><br>
+    <input type="email" id="email" name="email"><br>
+    <label for="phone">Phone:</label><br>
+    <input type="text" id="phone" name="phone"><br>
+    <input type="submit" value="Submit">
+</form>
+
+<h2>Delete User</h2>
+<form hx-delete="/user/delete" hx-trigger="submit">
+    <label for="uuid">UUID:</label><br>
+    <input type="text" id="uuid" name="uuid"><br>
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>
