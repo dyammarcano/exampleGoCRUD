@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"io/fs"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -213,7 +213,7 @@ func main() {
 	mux.HandleFunc("/user/update", provider.UpdateUserHandler)
 
 	// frontend layer
-	mux.HandleFunc("/", embedContentHandler(content))
+	mux.Handle("/", http.StripPrefix("/", assetsHandler(content)))
 
 	log.Println("Server is running on port 8080")
 
@@ -293,28 +293,15 @@ func deleteUser(db *sqlx.DB, uid string) error {
 	return nil
 }
 
-func embedContentHandler(content embed.FS) http.HandlerFunc {
+func assetsHandler(content embed.FS) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		strippedPath := r.URL.Path
-		fs := http.FileServer(http.FS(content))
-
-		// Prepend "app/dist" for root and /assets requests
-		if r.URL.Path == "/" || strings.HasPrefix(r.URL.Path, "/assets/") {
-			strippedPath = strings.TrimPrefix(strippedPath, "/")
-			strippedPath = "app/dist/" + strippedPath
+		sub, err := fs.Sub(content, "app/dist")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		// Serve the file
-		fs.ServeHTTP(w, r)
-
-		//fs := http.FS(content)
-		//f, err := fs.Open(strippedPath)
-		//if err != nil {
-		//	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		//	return
-		//}
-		//defer f.Close()
-		//
-		//htt.
+		fileServer := http.FileServer(http.FS(sub))
+		fileServer.ServeHTTP(w, r)
 	}
 }
