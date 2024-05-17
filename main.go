@@ -13,17 +13,15 @@ import (
 )
 
 const (
-	SQL_CREATE_TABLE = `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, age INTEGER, email TEXT, phone TEXT, createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
-	SQL_INSERT_USER  = `INSERT INTO users (username, age, email, phone) VALUES (?, ?, ?, ?);`
-	SQL_SELECT_USERS = `SELECT * FROM users;`
-	SQL_DELETE_USER  = `DELETE FROM users WHERE id IN (SELECT user_id FROM uuid_map WHERE uuid = ?);`
-	SQL_UPDATE_USER  = `UPDATE users SET username = ?, age = ?, email = ?, phone = ? WHERE id = ?;`
-	SQL_SELET_UER    = `SELECT u.id, u.username, u.age, u.email, u.phone, u.createAt FROM users u JOIN uuid_map m ON u.id = m.user_id WHERE m.uuid = ?;`
-
-	SQL_CREATE_ID = `CREATE TABLE IF NOT EXISTS uuid_map (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, user_id TEXT, createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
-	SQL_INSERT_ID = `INSERT INTO uuid_map (user_id, uuid) VALUES (?, ?);`
-	SQL_SELECT_ID = `SELECT * FROM uuid_map WHERE uuid = ?;`
-	SQL_DELETE_ID = `DELETE FROM uuid_map WHERE uuid = ?;`
+	SqlCreateTable = `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, age INTEGER, email TEXT, phone TEXT, createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
+	SqlCreateId    = `CREATE TABLE IF NOT EXISTS uuid_map (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, user_id TEXT, createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`
+	SqlInsertUser  = `INSERT INTO users (username, age, email, phone) VALUES (?, ?, ?, ?);`
+	SqlInsertId    = `INSERT INTO uuid_map (user_id, uuid) VALUES (?, ?);`
+	SqlSelectUsers = `SELECT * FROM users;`
+	SqlSeletUer    = `SELECT u.id, u.username, u.age, u.email, u.phone, u.createAt FROM users u JOIN uuid_map m ON u.id = m.user_id WHERE m.uuid = ?;`
+	SqlDeleteUser  = `DELETE FROM users WHERE id IN (SELECT user_id FROM uuid_map WHERE uuid = ?);`
+	SqlDeleteId    = `DELETE FROM uuid_map WHERE uuid = ?;`
+	SqlUpdateUser  = `UPDATE users SET username = ?, age = ?, email = ?, phone = ? WHERE id = ?;`
 )
 
 type DataProvider struct {
@@ -36,19 +34,15 @@ func NewDataProvider(ddriverName, dataSourceName string) (*DataProvider, error) 
 	if err != nil {
 		return nil, err
 	}
-
 	if err = db.Ping(); err != nil {
 		return nil, err
 	}
-
-	if _, err = db.Exec(SQL_CREATE_TABLE); err != nil {
+	if _, err = db.Exec(SqlCreateTable); err != nil {
 		return nil, err
 	}
-
-	if _, err = db.Exec(SQL_CREATE_ID); err != nil {
+	if _, err = db.Exec(SqlCreateId); err != nil {
 		return nil, err
 	}
-
 	return &DataProvider{
 		DB: db,
 	}, nil
@@ -98,7 +92,7 @@ func (p *DataProvider) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// query the users from the users table
-	rows, err := p.Queryx(SQL_SELECT_USERS)
+	rows, err := p.Queryx(SqlSelectUsers)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -164,6 +158,7 @@ func (p *DataProvider) DeleteUserHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// delete the user from the users table
 	if err := deleteUser(p.DB, id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -186,6 +181,7 @@ func (p *DataProvider) UpdateUserHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// update the user in the users table
 	if err := updateUser(p.DB, &user); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -232,7 +228,7 @@ func createUser(db *sqlx.DB, user *User) error {
 	user.UUID = uuid.New().String()
 
 	// Get the last inserted ID (user_id)
-	result, err := db.Exec(SQL_INSERT_USER, user.Username, user.Age, user.Email, user.Phone)
+	result, err := db.Exec(SqlInsertUser, user.Username, user.Age, user.Email, user.Phone)
 	if err != nil {
 		return err
 	}
@@ -244,13 +240,16 @@ func createUser(db *sqlx.DB, user *User) error {
 	}
 
 	// Update uuid_map table with user_id
-	_, err = db.Exec(SQL_INSERT_ID, userID, user.UUID)
+	_, err = db.Exec(SqlInsertId, userID, user.UUID)
 	return err
 }
 
 func getUserByUUID(db *sqlx.DB, uuid string) (*User, error) {
+	// get the user from the users table
 	var user User
-	if err := db.Get(&user, SQL_SELET_UER, uuid); err != nil {
+
+	// get the user from the users table
+	if err := db.Get(&user, SqlSeletUer, uuid); err != nil {
 		return nil, err
 	}
 
@@ -260,28 +259,26 @@ func getUserByUUID(db *sqlx.DB, uuid string) (*User, error) {
 }
 
 func updateUser(db *sqlx.DB, user *User) error {
+	// get the user from the users table
 	result, err := getUserByUUID(db, user.UUID)
 	if err != nil {
 		return err
 	}
-
-	if _, err = db.Exec(SQL_UPDATE_USER, user.Username, user.Age, user.Email, user.Phone, result.ID); err != nil {
+	// update the user in the users table
+	if _, err = db.Exec(SqlUpdateUser, user.Username, user.Age, user.Email, user.Phone, result.ID); err != nil {
 		return err
 	}
-
 	return err
 }
 
 func deleteUser(db *sqlx.DB, uid string) error {
 	// delete the user from the users table
-	if _, err := db.Exec(SQL_DELETE_USER, uid); err != nil {
+	if _, err := db.Exec(SqlDeleteUser, uid); err != nil {
 		return err
 	}
-
 	// delete the id from the hash_id table
-	if _, err := db.Exec(SQL_DELETE_ID, uid); err != nil {
+	if _, err := db.Exec(SqlDeleteId, uid); err != nil {
 		return err
 	}
-
 	return nil
 }
